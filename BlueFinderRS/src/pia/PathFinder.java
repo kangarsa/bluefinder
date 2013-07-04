@@ -254,7 +254,7 @@ public class PathFinder {
 
     //----------------------------WITH CATEGORIES --------------------
     /**
-     * Returns all normalized paths from a cityPage to a personPage using categories. 1st called method.
+     * Returns all normalized paths from <i>fromPage</i> to <i>toPage</i> using categories. 1st called method.
      * @param fromPage
      * @param toPage
      * @throws ClassNotFoundException
@@ -272,8 +272,8 @@ public class PathFinder {
             allPaths.add(direct);
         }
         for (String category : categories) {
-            current.add(this.normalizeCategory(category, fromPage,toPage));
-            this.getPathUsingCategories(category,fromPage, toPage, current, allPaths);
+            current.add(this.normalizeCategory(category, fromPage, toPage));
+            this.getPathUsingCategories(category, fromPage, toPage, current, allPaths);
             current.remove(current.size() - 1);
         }
 
@@ -318,7 +318,7 @@ public class PathFinder {
      * @param catId
      * @param personPageId 
      */
- private void getPathUsingCategories(String categoryName, String fromPage,  String toPage, List<String> currentPath, List<List<String>> allPaths) throws ClassNotFoundException, UnsupportedEncodingException {
+    private void getPathUsingCategories(String categoryName, String fromPage,  String toPage, List<String> currentPath, List<List<String>> allPaths) throws ClassNotFoundException, UnsupportedEncodingException {
         if (this.includesPage(categoryName, toPage)) {
             currentPath.add("[to]");
             List<String> temporal = new ArrayList<String>();
@@ -370,14 +370,10 @@ public class PathFinder {
         Integer catPageId = this.getCatPageId(categoryName);
         List<String> listCategories = new ArrayList<String>();
         try {
-            
-          //  System.out.println("Gettin subcategories from: " + catName.toUpperCase());
             Connection c = WikipediaConnector.getConnection();
             Statement st = c.createStatement();
             String query_text = "SELECT convert(cl_from using utf8) as cl_from, convert(page_title using utf8) as page_title from categorylinks inner join page on cl_from=page_id and page.page_namespace=14 and cl_to=\"" + categoryName + "\"";
-            // System.out.println(query_text);
-           // System.out.println(query_text);
-
+            
             ResultSet rs = st.executeQuery(query_text);
 
             while (rs.next()) {
@@ -390,19 +386,18 @@ public class PathFinder {
             }
             st.close();
             //c.close();
-            return listCategories;
         } catch (SQLException ex) {
             //System.out.println("SubCategories error para las de "+catName);
             //Logger.getLogger(PathFinder.class.getName()).log(Level.SEVERE, null, ex);
-        }finally{return listCategories;}
+        }
+        return listCategories;
     }
 
-    /*
-     * Returns a String whith the name of the category in a normalized form. It delegates the responsibility to
-     * the normalization strategy in normalizator. 4th called method.
+    /**
+     * Returns a String whith the name of the category in a normalized form. It delegates the responsibility to the normalization strategy in normalizator. 4th called method.
      */
-    protected String normalizeCategory(String subCategoryName, String fromCatName, String toCatName) {
-        return this.normalizator.normalizeCategory(subCategoryName, fromCatName, toCatName);
+    protected String normalizeCategory(String subCategoryName, String fromPage, String toPage) {
+        return this.normalizator.normalizeCategory(subCategoryName, fromPage, toPage);
     }
 
     /**

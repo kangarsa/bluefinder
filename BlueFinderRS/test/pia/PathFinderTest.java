@@ -7,6 +7,7 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import java.io.UnsupportedEncodingException;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -103,9 +104,17 @@ public class PathFinderTest {
     public void testGetPathsUsingCategories() {
         String from = "Liverpool";
         String to = "Chris_Lawler";
-        PathFinder pathFinder = new PathFinder();
         try {
-            List<List<String>> paths = pathFinder.getPathsUsingCategories(from, to);
+            List<List<String>> expectedResult = new ArrayList<List<String>>();
+            List<String> tmpPath = new ArrayList<String>();
+            tmpPath.add("[from]");
+            tmpPath.add("Category:Sportspeople_from_[from]");
+            tmpPath.add("[to]");
+            expectedResult.add(tmpPath);
+            tmpPath.clear();
+                    
+            List<List<String>> result = this.pathFinder.getPathsUsingCategories(from, to);
+            assertEquals(expectedResult + " expected,\ngot " + result, expectedResult, result);
         } catch (ClassNotFoundException ex) {
             fail("ClassNotFoundException");
             Logger.getLogger(PathFinderTest.class.getName()).log(Level.SEVERE, null, ex);
@@ -116,20 +125,7 @@ public class PathFinderTest {
             fail("UnsupportedEncodingException");
             Logger.getLogger(PathFinderTest.class.getName()).log(Level.SEVERE, null, ex);
         }
-    }
-
-    /**
-     * Test of getStringValue method, of class PathFinder.
-     */
-    @Test
-    public void testGetStringValue() {
-        System.out.println("getStringValue");
-        byte[] varbinary = null;
-        String expResult = "";
-        String result = this.pathFinder.getStringValue(varbinary);
-        assertEquals(expResult, result);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
+        fail("Prototype");
     }
 
     /**
@@ -139,8 +135,8 @@ public class PathFinderTest {
     public void testNormalizeCategory() {
         System.out.println("normalizeCategory");
         String subCategoryName = "";
-        String fromPage = "";
-        String toPage = "";
+        String fromPage = "Liverpool";
+        String toPage = "Chris_Lawler";
         String expResult = "";
         String result = this.pathFinder.normalizeCategory(subCategoryName, fromPage, toPage);
         assertEquals(expResult, result);
