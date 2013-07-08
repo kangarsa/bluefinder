@@ -17,7 +17,9 @@ import org.junit.Test;
 
 public class PathFinderTest {
     
-    private PathFinder pathFinder ;
+    private PathFinder pathFinder;
+    private static final String FROM = "[from]";
+    private static final String TO = "[to]";
     
     @BeforeClass
     public static void setUpClass() {
@@ -70,11 +72,15 @@ public class PathFinderTest {
      */
     @Test
     public void testAreDirectLinked() {
-        String from = "Liverpool";
-        String to = "Chris_Lawler";
+        String from = "Rosario,_Santa_Fe";
+        String to = "Lionel_Messi";
         try {
             boolean result = this.pathFinder.areDirectLinked(from, to);
             assertTrue(from + " and " + to + " are not directly linked error.", result);
+            result = this.pathFinder.areDirectLinked(from, to);
+            from = "Liverpool";
+            to = "Chris_Lawler";
+            assertFalse(from + " and " + to + " are not supposed to be linked error.", result);
         } catch (ClassNotFoundException ex) {
             fail("ClassNotFoundException");
             Logger.getLogger(PathFinderTest.class.getName()).log(Level.SEVERE, null, ex);
@@ -106,10 +112,12 @@ public class PathFinderTest {
         String to = "Chris_Lawler";
         try {
             List<List<String>> expectedResult = new ArrayList<List<String>>();
+            
+            
             List<String> tmpPath = new ArrayList<String>();
-            tmpPath.add("[from]");
-            tmpPath.add("Category:Sportspeople_from_[from]");
-            tmpPath.add("[to]");
+            tmpPath.add(FROM);
+            tmpPath.add("Category:Sportspeople_from_" + FROM);
+            tmpPath.add(TO);
             expectedResult.add(tmpPath);
             tmpPath.clear();
                     
