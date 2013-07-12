@@ -65,11 +65,11 @@ public class PathFinderTest {
         String to = "Lionel_Messi";
         try {
             boolean result = this.pathFinder.areDirectLinked(from, to);
-            assertTrue(from + " and " + to + " are not directly linked error.", result);
-            result = this.pathFinder.areDirectLinked(from, to);
+            assertTrue("These should be linked.", result);
             from = "Liverpool";
             to = "Chris_Lawler";
-            assertFalse(from + " and " + to + " are not supposed to be linked error.", result);
+            result = this.pathFinder.areDirectLinked(from, to);
+            assertFalse("These should not be linked.", result);
         } catch (ClassNotFoundException ex) {
             fail("ClassNotFoundException");
             Logger.getLogger(PathFinderTest.class.getName()).log(Level.SEVERE, null, ex);
@@ -140,7 +140,7 @@ public class PathFinderTest {
         assertTrue(result.isEmpty());
     }
     /**
-     * Test of normalizeCategory method, of class PathFinder.
+     * Test of protected normalizeCategory method, of class PathFinder.
      */
     @Test
     public void testNormalizeCategory() {

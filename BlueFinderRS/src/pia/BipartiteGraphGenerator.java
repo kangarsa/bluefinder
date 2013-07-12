@@ -4,6 +4,7 @@
  */
 package pia;
 
+import db.BlueFinderDb;
 import db.WikipediaConnector;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -34,12 +35,12 @@ public class BipartiteGraphGenerator {
 
     private PathFinder finder;
     private Map<String, Set<String>> normalizedPaths;
-    private List<String> not_founded_path;
+    private List<String> notFoundPath;
 
     public BipartiteGraphGenerator() {
         this.finder = new PathFinder();
         this.normalizedPaths = new HashMap<String, Set<String>>();
-        this.not_founded_path = new ArrayList<String>();
+        this.notFoundPath = new ArrayList<String>();
     }
 
     public BipartiteGraphGenerator(int categoryIterations) {
@@ -69,13 +70,13 @@ public class BipartiteGraphGenerator {
         }
        
         if (paths.isEmpty()) {
-            this.not_founded_path.add(fromPageName + " , " + toPage);
-            this.addNotFoundedPath(fromPageName, toPage);
+            this.notFoundPath.add(fromPageName + " , " + toPage);
+            this.addNotFoundPath(fromPageName, toPage);
         }
     }
 
     public List<String> notFoundedPath() {
-        return this.not_founded_path;
+        return this.notFoundPath;
     }
 
     private void writeIntoFile() throws IOException {
@@ -108,50 +109,56 @@ public class BipartiteGraphGenerator {
     }
 
     public void removeNotFound(int id){
-        try {
-            Connection c = WikipediaConnector.getResultsConnection();
-            Statement st = c.createStatement();
-            String query_text = "DELETE FROM NFPC where id="+id;
-
-            System.out.println(query_text);
-            st.executeUpdate(query_text);
-
-
-        } catch (ClassNotFoundException ex) {
-            Logger.getLogger(BipartiteGraphGenerator.class.getName()).log(Level.SEVERE, null, ex);
-        } catch (SQLException ex) {
-            //Logger.getLogger(BipartiteGraphGenerator.class.getName()).log(Level.SEVERE, null, ex);
-        }        
+        BlueFinderDb.removeNFPC(id);
     }
+//        public void removeNotFound(int id){
+//        try {
+//            Connection c = WikipediaConnector.getResultsConnection();
+//            Statement st = c.createStatement();
+//            String query_text = "DELETE FROM NFPC where id="+id;
+//
+//            System.out.println(query_text);
+//            st.executeUpdate(query_text);
+//        } catch (ClassNotFoundException ex) {
+//            Logger.getLogger(BipartiteGraphGenerator.class.getName()).log(Level.SEVERE, null, ex);
+//        } catch (SQLException ex) {
+//            //Logger.getLogger(BipartiteGraphGenerator.class.getName()).log(Level.SEVERE, null, ex);
+//        }        
+//    }
     
-    private void addNotFoundedPath(String from, String to) {
-        try {
-            Connection c = WikipediaConnector.getResultsConnection();
-            Statement st = c.createStatement();
-            String query_text = "INSERT INTO NFPC (v_from,u_to) VALUES (\"" + from + "\",\"" + to + "\")";
-
-            //System.out.println(query_text);
-            st.executeUpdate(query_text);
-        } catch (ClassNotFoundException ex) {
-            Logger.getLogger(BipartiteGraphGenerator.class.getName()).log(Level.SEVERE, null, ex);
-        } catch (SQLException ex) {
-            //Logger.getLogger(BipartiteGraphGenerator.class.getName()).log(Level.SEVERE, null, ex);
-        }
+    private void addNotFoundPath(String from, String to) {
+        BlueFinderDb.saveNFPC(from, to);
     }
+//    private void addNotFoundPath(String from, String to) {
+//        try {
+//            Connection c = WikipediaConnector.getResultsConnection();
+//            Statement st = c.createStatement();
+//            String query_text = "INSERT INTO NFPC (v_from,u_to) VALUES (\"" + from + "\",\"" + to + "\")";
+//
+//            st.executeUpdate(query_text);
+//        } catch (ClassNotFoundException ex) {
+//            Logger.getLogger(BipartiteGraphGenerator.class.getName()).log(Level.SEVERE, null, ex);
+//        } catch (SQLException ex) {
+//            //Logger.getLogger(BipartiteGraphGenerator.class.getName()).log(Level.SEVERE, null, ex);
+//        }
+//    }
 
     public void addEdge(int pathId, int pageId) {
-        try {
-            Connection c = WikipediaConnector.getResultsConnection();
-            Statement st = c.createStatement();
-            String query_text = "INSERT INTO UxV (u_from,v_to,description) VALUES (" + pageId + "," + pathId + ",\" \")";
-            // System.out.println(query_text);
-            st.executeUpdate(query_text);
-        } catch (ClassNotFoundException ex) {
-            Logger.getLogger(BipartiteGraphGenerator.class.getName()).log(Level.SEVERE, null, ex);
-        } catch (SQLException ex) {
-            // Logger.getLogger(BipartiteGraphGenerator.class.getName()).log(Level.SEVERE, null, ex);
-        }
+        BlueFinderDb.saveUxV(pageId, pathId);
     }
+//    public void addEdge(int pathId, int pageId) {
+//        try {
+//            Connection c = WikipediaConnector.getResultsConnection();
+//            Statement st = c.createStatement();
+//            String query_text = "INSERT INTO UxV (u_from,v_to,description) VALUES (" + pageId + "," + pathId + ",\" \")";
+//            // System.out.println(query_text);
+//            st.executeUpdate(query_text);
+//        } catch (ClassNotFoundException ex) {
+//            Logger.getLogger(BipartiteGraphGenerator.class.getName()).log(Level.SEVERE, null, ex);
+//        } catch (SQLException ex) {
+//            // Logger.getLogger(BipartiteGraphGenerator.class.getName()).log(Level.SEVERE, null, ex);
+//        }
+//    }
 
     private void insertPathIntoGraph(List<String> path, String toPage) {
         String textualPath = this.pathToString(path);
@@ -184,7 +191,6 @@ public class BipartiteGraphGenerator {
             PreparedStatement st2 = c.prepareStatement("INSERT INTO V_Normalized (path) VALUES (?)");
             st2.setString(1, normalizedPath);
             st2.executeUpdate();
-            // System.out.println(query_text);
 
             //int rs = st.executeUpdate(query_text);
             result = this.getPathIndex(normalizedPath);
@@ -204,43 +210,52 @@ public class BipartiteGraphGenerator {
      * @return 
      */
     private int getPathIndex(String normalizedPath) {
-        int result = 0;
-        try {
-            Connection c = WikipediaConnector.getResultsConnection();
-            Statement st = c.createStatement();
-            String query_text = "SELECT id FROM V_Normalized where path=\"" + normalizedPath + "\"";
-            //System.out.println(query_text);
-
-            ResultSet rs = st.executeQuery(query_text);
-            if (rs.next()) {
-                result = rs.getInt("id");
-            }
-        } catch (ClassNotFoundException ex) {
-            Logger.getLogger(BipartiteGraphGenerator.class.getName()).log(Level.SEVERE, null, ex);
-        } catch (SQLException ex) {
-            //Logger.getLogger(BipartiteGraphGenerator.class.getName()).log(Level.SEVERE, null, ex);
-        } finally {
-            return result;
-        }
+        int id = BlueFinderDb.getV_NormalizedId(normalizedPath);
+        return id;
     }
+//    private int getPathIndex(String normalizedPath) {
+//        int result = 0;
+//        try {
+//            Connection c = WikipediaConnector.getResultsConnection();
+//            Statement st = c.createStatement();
+//            String query_text = "SELECT id FROM V_Normalized where path=\"" + normalizedPath + "\"";
+//            //System.out.println(query_text);
+//
+//            ResultSet rs = st.executeQuery(query_text);
+//            if (rs.next()) {
+//                result = rs.getInt("id");
+//            }
+//        } catch (ClassNotFoundException ex) {
+//            Logger.getLogger(BipartiteGraphGenerator.class.getName()).log(Level.SEVERE, null, ex);
+//        } catch (SQLException ex) {
+//            //Logger.getLogger(BipartiteGraphGenerator.class.getName()).log(Level.SEVERE, null, ex);
+//        } finally {
+//            return result;
+//        }
+//    }
 
     private int saveCityPage(String cityPage) {
-        int result = 0;
-        try {
-            Connection c = WikipediaConnector.getResultsConnection();
-            Statement st = c.createStatement();
-            String query_text = "INSERT INTO U_page (page) VALUES (\"" + cityPage + "\")";
-
-            int rs = st.executeUpdate(query_text);
-            result = this.getCityIndex(cityPage);
-        } catch (ClassNotFoundException ex) {
-            Logger.getLogger(BipartiteGraphGenerator.class.getName()).log(Level.SEVERE, null, ex);
-        } catch (SQLException ex) {
-            // Logger.getLogger(BipartiteGraphGenerator.class.getName()).log(Level.SEVERE, null, ex);
-        } finally {
-            return result;
-        }
-    }
+        BlueFinderDb.saveU_page(cityPage);
+        int id = this.getCityIndex(cityPage);
+        return id;
+    } 
+//    private int saveCityPage(String cityPage) {
+//        int result = 0;
+//        try {
+//            Connection c = WikipediaConnector.getResultsConnection();
+//            Statement st = c.createStatement();
+//            String query_text = "INSERT INTO U_page (page) VALUES (\"" + cityPage + "\")";
+//
+//            int rs = st.executeUpdate(query_text);
+//            result = this.getCityIndex(cityPage);
+//        } catch (ClassNotFoundException ex) {
+//            Logger.getLogger(BipartiteGraphGenerator.class.getName()).log(Level.SEVERE, null, ex);
+//        } catch (SQLException ex) {
+//            // Logger.getLogger(BipartiteGraphGenerator.class.getName()).log(Level.SEVERE, null, ex);
+//        } finally {
+//            return result;
+//        }
+//    }
 
     /**
      * Return de id in the U_page table with page name cityPage
@@ -248,24 +263,28 @@ public class BipartiteGraphGenerator {
      * @return 
      */
     private int getCityIndex(String cityPage) {
-        int result = 0;
-        try {
-            Connection c = WikipediaConnector.getResultsConnection();
-            Statement st = c.createStatement();
-            String query_text = "SELECT id FROM U_page where page=\"" + cityPage + "\"";
-
-            ResultSet rs = st.executeQuery(query_text);
-            if (rs.next()) {
-                result = rs.getInt("id");
-            }
-        } catch (ClassNotFoundException ex) {
-            Logger.getLogger(BipartiteGraphGenerator.class.getName()).log(Level.SEVERE, null, ex);
-        } catch (SQLException ex) {
-            //Logger.getLogger(BipartiteGraphGenerator.class.getName()).log(Level.SEVERE, null, ex);
-        } finally {
-            return result;
-        }
+        int id = BlueFinderDb.getU_pageId(cityPage);
+        return id;
     }
+//    private int getCityIndex(String cityPage) {
+//        int result = 0;
+//        try {
+//            Connection c = WikipediaConnector.getResultsConnection();
+//            Statement st = c.createStatement();
+//            String query_text = "SELECT id FROM U_page where page=\"" + cityPage + "\"";
+//
+//            ResultSet rs = st.executeQuery(query_text);
+//            if (rs.next()) {
+//                result = rs.getInt("id");
+//            }
+//        } catch (ClassNotFoundException ex) {
+//            Logger.getLogger(BipartiteGraphGenerator.class.getName()).log(Level.SEVERE, null, ex);
+//        } catch (SQLException ex) {
+//            //Logger.getLogger(BipartiteGraphGenerator.class.getName()).log(Level.SEVERE, null, ex);
+//        } finally {
+//            return result;
+//        }
+//    }
 
     /*
     public static void main(String[] args) throws ClassNotFoundException, SQLException, IOException {

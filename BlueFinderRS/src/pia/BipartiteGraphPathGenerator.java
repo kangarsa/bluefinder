@@ -42,7 +42,7 @@ public class BipartiteGraphPathGenerator {
         }
         
         int inf_limit = Integer.parseInt(args[0]);
-        int max_limjt = Integer.parseInt(args[1]);
+        int max_limit = Integer.parseInt(args[1]);
         int iterations = Integer.parseInt(args[2]);
         String from_to_table = args[3];
         String dbpediaPrefix = DBPEDIA_PREFIX;
@@ -54,7 +54,7 @@ public class BipartiteGraphPathGenerator {
         BipartiteGraphGenerator bgg = new BipartiteGraphGenerator(iterations);
         resetTables();
 
-        ResultSet resultSet = st.executeQuery("SELECT * FROM " + from_to_table + " limit " + inf_limit + " ," + max_limjt);
+        ResultSet resultSet = st.executeQuery("SELECT * FROM " + from_to_table + " limit " + inf_limit + " ," + max_limit);
         while (resultSet.next()) {
             String to = resultSet.getString("to");
             to = URLDecoder.decode(to, "UTF-8");
