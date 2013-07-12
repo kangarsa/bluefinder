@@ -1,5 +1,6 @@
 package pia;
 
+import db.PiaDb;
 import java.io.UnsupportedEncodingException;
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -207,64 +208,24 @@ public class PathFinder {
 
     private void findSpecificPath(PathFinder finder, String person, String city, Statement st2) throws ClassNotFoundException {
         try {
-            //if(finder.findPathBFS(city, person)){
             if (finder.findPathBFS(person, city)) {
                 st2.executeUpdate("INSERT INTO found_path (page_from, page_to, hops) VALUES (\"" + person + "\",\"" + city + "\",\"" + finder.getIterations() + "\" )");
-               // System.out.println("Camino encontrado para " + person);
             } else {
-                //System.out.println("INSERT INTO not_found_path (from, to, hops, reason) VALUES (\"" + person + "\",\"" + city + "\",\"" + finder.getIterations() + "\",\"" + finder.getReason() + "\" )");
                 st2.executeUpdate("INSERT INTO not_found_path (page_from, page_to, hops, reason) VALUES (\"" + person + "\",\"" + city + "\",\"" + finder.getIterations() + "\",\"" + finder.getReason() + "\" )");
-                //System.out.println("Camino NO para " + person);
             }
         } catch (SQLException ex) {
             
         }
     }
 
-    private Integer getPageId(String from) throws ClassNotFoundException {
-        int page = 0;
-        try {
-            Connection c = this.getWikipediaConnector().getConnection();
-            Statement st = c.createStatement();
-          //  System.out.println("Select page_id from page where page_namespace=0 and page_title=\"" + from + "\"");
-            ResultSet rs = st.executeQuery("Select page_id from page where page_namespace=0 and page_title=\"" + from + "\"");
-
-            if (rs.next()) {
-                page = rs.getInt("page_id");
-            } else {
-                page = 0;
-            }
-            st.close();
-            //c.close();
-            return page;
-        } catch (SQLException ex) {
-           // Logger.getLogger(PathFinder.class.getName()).log(Level.SEVERE, null, ex);
-        }finally{return page;}
+    private Integer getPageId(String from) {
+        int page = PiaDb.getPageId(from);
+        return page;
     }
 
-    private Integer getCatPageId(String from) throws ClassNotFoundException {
-        int page = 0;
-        try {
-            Connection c = this.getWikipediaConnector().getConnection();
-            Statement st = c.createStatement();
-            //System.out.println("Select page_id from page where page_namespace=14 and page_title=\"" + from + "\"");
-            ResultSet rs = st.executeQuery("Select page_id from page where page_namespace=14 and page_title=\"" + from + "\"");
-
-            if (rs.next()) {
-                page = rs.getInt("page_id");
-            } else {
-                page = 0;
-            }
-            st.close();
-            //c.close();
-            return page;
-        } catch (SQLException ex) {
-           // System.out.println("Error para obtener el id de "+from);
-           // Logger.getLogger(PathFinder.class.getName()).log(Level.SEVERE, from, ex);
-        } finally {
-            return page;
-        }
-       // System.out.println("Luego del catch de error"+from);
+    private Integer getCatPageId(String from) {
+        int page = PiaDb.getCategoryPageId(from);
+        return page;
     }
 
     public String getReason() {
@@ -317,8 +278,6 @@ public class PathFinder {
 
         while (rs.next()) {
             String catTo = rs.getString("cl_to");
-            //InputStream stream = rs.getBinaryStream("cl_to");
-            //String catTo = stream.toString();
             if (!BLACKLIST_CATEGORY.contains(catTo)) {
                 listCategories.add(catTo);
             }
@@ -375,7 +334,6 @@ public class PathFinder {
            // Logger.getLogger(PathFinder.class.getName()).log(Level.SEVERE, catName+personPageName, ex);
         }
         return false;
-
     }
 
     /**
@@ -425,7 +383,6 @@ public class PathFinder {
      * @return 
      */
     public int getRelevantDocuments(String pathQuery) throws ClassNotFoundException, SQLException, UnsupportedEncodingException{
-        //String query = "SELECT V.path, up.page FROM V_Normalized V, UxV uv,U_page up where V.id=uv.u_from and uv.v_to=up.id and V.path=\""+pathQuery+"\"";
         String query = "SELECT distinct up.page FROM U_page up";
         String query_notfound = "SELECT v_from, u_to FROM NFPC";
         
@@ -435,7 +392,7 @@ public class PathFinder {
 
         ResultSet normalizedPaths = st.executeQuery(query);
 
-        while (normalizedPaths.next()) {            
+        while (normalizedPaths.next()) {
             //String path = normalizedPaths.getString("path");
             String page = normalizedPaths.getString("page");
 
@@ -484,14 +441,14 @@ public class PathFinder {
      * Algoritmo viejo, creo que puede ser borrado.
      */
     public boolean isReachablePath(String pathQuery, String from, String to) throws ClassNotFoundException, SQLException, UnsupportedEncodingException{
-        if(pathQuery.equals("[to]")){
+        if(pathQuery.equals(this.to)){
             return true;
         }
         String path  = pathQuery.substring(0, pathQuery.length()-5);
         String[] steps = path.split("/");
         for (int i = 0; i < steps.length; i++) {
-            steps[i] = steps[i].replaceAll("\\[from\\]", from);
-            steps[i] = steps[i].replaceAll("\\[to\\]", to);
+            steps[i] = steps[i].replaceAll(this.from, from);
+            steps[i] = steps[i].replaceAll(this.to, to);
         }    
          
         if(this.getCategoriesFromPage(from).contains(steps[0])) {   
@@ -583,18 +540,13 @@ public class PathFinder {
         }
     }
     
-    private String getCategory(String path, String from, String to){
-        
+    private String getCategory(String path, String from, String to) {        
         String[] steps = ("/"+path).split("/");
         
-        String result = steps[steps.length-2];
-                
-        result = result.replaceAll("\\[from\\]", from);
-        
-        result = result.replaceAll("\\[to\\]", to);
-        
-        return result;
-        
+        String result = steps[steps.length-2];                
+        result = result.replaceAll(this.from, from);        
+        result = result.replaceAll(this.to, to);        
+        return result;        
     }
     
     private String getFrom(String pairOfPages){

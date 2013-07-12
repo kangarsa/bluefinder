@@ -9,6 +9,10 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -71,6 +75,30 @@ public class BlueFinderDb {
             Logger.getLogger(BlueFinderDb.class.getName()).log(Level.SEVERE, null, ex);
         }
         return status;
+    }
+    
+    public static List<Map<String, String>> findAllNFPC() {
+        List<Map<String, String>> results = new ArrayList<Map<String, String>>();
+        try {            
+            Connection c = WikipediaConnector.getResultsConnection();
+            Statement st = c.createStatement();
+            String strQuery = "SELECT v_from, u_to FROM NFPC";
+            
+            ResultSet normalizedPaths = st.executeQuery(strQuery);
+            while (normalizedPaths.next()) {
+                String from = normalizedPaths.getString("v_from");
+                String to = normalizedPaths.getString("u_to");
+                Map<String, String> tmpMap = new HashMap<String, String>();
+                tmpMap.put("v_from", from);
+                tmpMap.put("u_to", to);
+                results.add(tmpMap);
+            }
+        } catch (ClassNotFoundException ex) {
+            Logger.getLogger(BlueFinderDb.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (SQLException ex) {
+            Logger.getLogger(BlueFinderDb.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        return results;
     }
     
     public static int removeNFPC(int id) {
