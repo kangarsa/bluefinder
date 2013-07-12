@@ -16,9 +16,11 @@ import normalization.BasicNormalization;
 import normalization.INormalizator;
 import db.WikipediaConnector;
 import java.io.BufferedReader;
+import java.io.FileInputStream;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.Collections;
+import java.util.Properties;
 
 /**
  *
@@ -38,6 +40,9 @@ public class PathFinder {
     private int regularGeneratedPaths = 0;
     private List<String> analysedPathQueryRetrieved; 
     private INormalizator normalizator;
+    private WikipediaConnector wikipediaConnector;
+    private String from = "[from]";
+    private String to = "[to]";
     private static final List<String> BLACKLIST_CATEGORY;
     static {
         List<String> tmp = new ArrayList<String>();
@@ -58,13 +63,28 @@ public class PathFinder {
 
     public PathFinder() {
         this.visited = new HashSet<Integer>();
-        //this.newPaths = new HashSet<Integer>();
         this.reason = "";
         this.specificPaths = new ArrayList<List<String>>();
         this.categoryPathIterations = 0;
         this.regularGeneratedPaths = 0;
         this.analysedPathQueryRetrieved = new ArrayList<String>();
-        this.normalizator= new BasicNormalization();
+        this.normalizator = new BasicNormalization();
+        this.wikipediaConnector = new WikipediaConnector();
+        
+        Properties properties = new Properties();
+        try {
+            properties.load(new FileInputStream("string.cfg"));
+            this.from = properties.getProperty("static.from");
+            this.to = properties.getProperty("static.to");
+        } catch (IOException ex) {
+            Logger.getLogger(PathFinder.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
+    
+    public PathFinder(WikipediaConnector wikipediaConnector, INormalizator normalizator) {
+        this();
+        this.wikipediaConnector = wikipediaConnector;
+        this.normalizator = normalizator;
     }
     
     public void setNormalizator(INormalizator normalizator){
@@ -86,14 +106,13 @@ public class PathFinder {
     /*
      * Returns true if fromPage has a direct link to toPage. Otherwise returns false. 3th method called.
      */
-    public boolean areDirectLinked(String fromPage, String toPage) throws ClassNotFoundException, SQLException{
-        boolean result = false;
-        Integer fromPageId= this.getPageId(fromPage);
-        Integer toPageId= this.getPageId(toPage);
+    public boolean areDirectLinked(String fromPage, String toPage) throws ClassNotFoundException, SQLException {
+        Integer fromPageId = this.getPageId(fromPage);
+        Integer toPageId = this.getPageId(toPage);
         Set<Integer> setIds = new HashSet<Integer>();
         setIds.add(fromPageId);
         List<Integer> linkedPages = this.getDirectNodesFrom(setIds);
-        result = linkedPages.contains(toPageId);
+        Boolean result = linkedPages.contains(toPageId);
         
         return result;
     }
@@ -160,7 +179,7 @@ public class PathFinder {
     private List<Integer> getDirectNodesFrom(Set<Integer> current) throws ClassNotFoundException, SQLException {
         List<Integer> result = new ArrayList<Integer>();
 
-        Connection wikipediaConnection = WikipediaConnector.getConnection();
+        Connection wikipediaConnection = this.getWikipediaConnector().getConnection();
         Statement st = wikipediaConnection.createStatement();
         for (Integer pageId : current) {
             //ResultSet rs = st.executeQuery("select  level0.pl_title as pagetitle, page.page_id as pageid from (pagelinks as level0 inner join page on level0.pl_from="+pageId+" and level0.pl_namespace=0 and page.page_namespace=0 and page.page_title=level0.pl_title)");
@@ -205,7 +224,7 @@ public class PathFinder {
     private Integer getPageId(String from) throws ClassNotFoundException {
         int page = 0;
         try {
-            Connection c = WikipediaConnector.getConnection();
+            Connection c = this.getWikipediaConnector().getConnection();
             Statement st = c.createStatement();
           //  System.out.println("Select page_id from page where page_namespace=0 and page_title=\"" + from + "\"");
             ResultSet rs = st.executeQuery("Select page_id from page where page_namespace=0 and page_title=\"" + from + "\"");
@@ -226,7 +245,7 @@ public class PathFinder {
     private Integer getCatPageId(String from) throws ClassNotFoundException {
         int page = 0;
         try {
-            Connection c = WikipediaConnector.getConnection();
+            Connection c = this.getWikipediaConnector().getConnection();
             Statement st = c.createStatement();
             //System.out.println("Select page_id from page where page_namespace=14 and page_title=\"" + from + "\"");
             ResultSet rs = st.executeQuery("Select page_id from page where page_namespace=14 and page_title=\"" + from + "\"");
@@ -286,11 +305,11 @@ public class PathFinder {
      * @param pageId
      * @return 
      */
-    private List<String> getCategoriesFromPage(String pageName) throws ClassNotFoundException, SQLException, UnsupportedEncodingException {
+     List<String> getCategoriesFromPage(String pageName) throws ClassNotFoundException, SQLException, UnsupportedEncodingException {
         Integer pageId = this.getPageId(pageName);
         List<String> listCategories = new ArrayList<String>();
 
-        Connection c = WikipediaConnector.getConnection();
+        Connection c = this.getWikipediaConnector().getConnection();
         Statement st = c.createStatement();
         String query_text = "SELECT convert(cl_to using utf8) as cl_to FROM categorylinks c where cl_from=" + pageId + " and cl_type=\"page\"";
        
@@ -370,7 +389,7 @@ public class PathFinder {
         Integer catPageId = this.getCatPageId(categoryName);
         List<String> listCategories = new ArrayList<String>();
         try {
-            Connection c = WikipediaConnector.getConnection();
+            Connection c = this.getWikipediaConnector().getConnection();
             Statement st = c.createStatement();
             String query_text = "SELECT convert(cl_from using utf8) as cl_from, convert(page_title using utf8) as page_title from categorylinks inner join page on cl_from=page_id and page.page_namespace=14 and cl_to=\"" + categoryName + "\"";
             
@@ -410,7 +429,7 @@ public class PathFinder {
         String query = "SELECT distinct up.page FROM U_page up";
         String query_notfound = "SELECT v_from, u_to FROM NFPC";
         
-        Connection dbresearch = WikipediaConnector.getResultsConnection();
+        Connection dbresearch = this.getWikipediaConnector().getResultsConnection();
 
         Statement st = dbresearch.createStatement();
 
@@ -494,7 +513,7 @@ public class PathFinder {
     private void writeRelevantPagesFromDirectLink(String from){
         try {
             int pageId = this.getPageId(from);
-            Connection wikipedia = WikipediaConnector.getConnection();
+            Connection wikipedia = this.getWikipediaConnector().getConnection();
             Statement st = wikipedia.createStatement();
             
             if(pageId != 0){
@@ -520,13 +539,12 @@ public class PathFinder {
             Logger.getLogger(PathFinder.class.getName()).log(Level.SEVERE, null, ex);
         } catch (SQLException ex) {
             Logger.getLogger(PathFinder.class.getName()).log(Level.SEVERE, null, ex);
-        }
-        
+        }        
     }
     
     private void writeRelevantPagesFromCategory(String categoryName) {
         try {
-            Connection wikipedia = WikipediaConnector.getConnection();
+            Connection wikipedia = this.getWikipediaConnector().getConnection();
             Statement st = wikipedia.createStatement();
             
             String query_text = "SELECT p.page_title FROM categorylinks c, page p where cl_to=\""+categoryName+"\" and cl_type=\"page\" and p.page_id=c.cl_from";
@@ -550,7 +568,7 @@ public class PathFinder {
     private void saveRelatedPage(String pageTitle){
         System.out.println("Saving ... " + pageTitle);
         try {
-            Connection con = WikipediaConnector.getResultsConnection();
+            Connection con = this.getWikipediaConnector().getResultsConnection();
             Statement st = con.createStatement();
             
             String query = "INSERT INTO relevant_pages (page) values (\""+pageTitle+"\")";
@@ -630,4 +648,18 @@ public class PathFinder {
          
          
      }*/
+
+    /**
+     * @return the wikipediaConnector
+     */
+    public WikipediaConnector getWikipediaConnector() {
+        return wikipediaConnector;
+    }
+
+    /**
+     * @param wikipediaConnector the wikipediaConnector to set
+     */
+    public void setWikipediaConnector(WikipediaConnector wikipediaConnector) {
+        this.wikipediaConnector = wikipediaConnector;
+    }
 }

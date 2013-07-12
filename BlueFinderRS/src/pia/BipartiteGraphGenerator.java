@@ -10,7 +10,6 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
-import java.lang.String;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -38,12 +37,9 @@ public class BipartiteGraphGenerator {
     private List<String> not_founded_path;
 
     public BipartiteGraphGenerator() {
-
         this.finder = new PathFinder();
         this.normalizedPaths = new HashMap<String, Set<String>>();
         this.not_founded_path = new ArrayList<String>();
-
-
     }
 
     public BipartiteGraphGenerator(int categoryIterations) {
@@ -51,15 +47,14 @@ public class BipartiteGraphGenerator {
         this.finder.setCategoryPathIterations(categoryIterations);
     }
     
-    public BipartiteGraphGenerator(INormalizator normalizator, int iterations){
+    public BipartiteGraphGenerator(INormalizator normalizator, WikipediaConnector connector, int iterations){
     	this(iterations);
+        this.finder.setWikipediaConnector(connector);
     	this.finder.setNormalizator(normalizator);
     }
-
        
     public boolean areDirectLinked(String domain, String target) throws ClassNotFoundException, SQLException{
-        return this.finder.areDirectLinked(domain, target);
-        
+        return this.finder.areDirectLinked(domain, target);        
     }
 
     public void generateBiGraph(String fromPageName, String toPage) throws SQLException, ClassNotFoundException, UnsupportedEncodingException {
@@ -71,7 +66,6 @@ public class BipartiteGraphGenerator {
             if (!(dbPageId == 0 || dbPathId == 0)) {
                 this.addEdge(dbPathId, dbPageId);
             }
-
         }
        
         if (paths.isEmpty()) {
@@ -114,7 +108,7 @@ public class BipartiteGraphGenerator {
     }
 
     public void removeNotFound(int id){
-           try {
+        try {
             Connection c = WikipediaConnector.getResultsConnection();
             Statement st = c.createStatement();
             String query_text = "DELETE FROM NFPC where id="+id;
@@ -127,9 +121,9 @@ public class BipartiteGraphGenerator {
             Logger.getLogger(BipartiteGraphGenerator.class.getName()).log(Level.SEVERE, null, ex);
         } catch (SQLException ex) {
             //Logger.getLogger(BipartiteGraphGenerator.class.getName()).log(Level.SEVERE, null, ex);
-        }
-        
+        }        
     }
+    
     private void addNotFoundedPath(String from, String to) {
         try {
             Connection c = WikipediaConnector.getResultsConnection();
@@ -138,8 +132,6 @@ public class BipartiteGraphGenerator {
 
             //System.out.println(query_text);
             st.executeUpdate(query_text);
-
-
         } catch (ClassNotFoundException ex) {
             Logger.getLogger(BipartiteGraphGenerator.class.getName()).log(Level.SEVERE, null, ex);
         } catch (SQLException ex) {
@@ -148,15 +140,12 @@ public class BipartiteGraphGenerator {
     }
 
     public void addEdge(int pathId, int pageId) {
-
         try {
             Connection c = WikipediaConnector.getResultsConnection();
             Statement st = c.createStatement();
             String query_text = "INSERT INTO UxV (u_from,v_to,description) VALUES (" + pageId + "," + pathId + ",\" \")";
             // System.out.println(query_text);
             st.executeUpdate(query_text);
-
-
         } catch (ClassNotFoundException ex) {
             Logger.getLogger(BipartiteGraphGenerator.class.getName()).log(Level.SEVERE, null, ex);
         } catch (SQLException ex) {
@@ -171,7 +160,6 @@ public class BipartiteGraphGenerator {
             this.normalizedPaths.put(textualPath, new HashSet<String>());
         }
         this.normalizedPaths.get(textualPath).add(toPage);
-
     }
 
     private String pathToString(List<String> path) {
@@ -180,8 +168,6 @@ public class BipartiteGraphGenerator {
             text += step + "/";
         }
         return text.substring(0, text.lastIndexOf("/"));
-
-
     }
 
     /**
@@ -203,8 +189,6 @@ public class BipartiteGraphGenerator {
             //int rs = st.executeUpdate(query_text);
             result = this.getPathIndex(normalizedPath);
             st2.close();
-
-
         } catch (ClassNotFoundException ex) {
             Logger.getLogger(BipartiteGraphGenerator.class.getName()).log(Level.SEVERE, null, ex);
         } catch (SQLException ex) {
@@ -228,7 +212,6 @@ public class BipartiteGraphGenerator {
             //System.out.println(query_text);
 
             ResultSet rs = st.executeQuery(query_text);
-
             if (rs.next()) {
                 result = rs.getInt("id");
             }
@@ -247,12 +230,9 @@ public class BipartiteGraphGenerator {
             Connection c = WikipediaConnector.getResultsConnection();
             Statement st = c.createStatement();
             String query_text = "INSERT INTO U_page (page) VALUES (\"" + cityPage + "\")";
-            // System.out.println(query_text);
 
             int rs = st.executeUpdate(query_text);
             result = this.getCityIndex(cityPage);
-
-
         } catch (ClassNotFoundException ex) {
             Logger.getLogger(BipartiteGraphGenerator.class.getName()).log(Level.SEVERE, null, ex);
         } catch (SQLException ex) {
@@ -273,10 +253,8 @@ public class BipartiteGraphGenerator {
             Connection c = WikipediaConnector.getResultsConnection();
             Statement st = c.createStatement();
             String query_text = "SELECT id FROM U_page where page=\"" + cityPage + "\"";
-            // System.out.println(query_text);
 
             ResultSet rs = st.executeQuery(query_text);
-
             if (rs.next()) {
                 result = rs.getInt("id");
             }
@@ -287,7 +265,6 @@ public class BipartiteGraphGenerator {
         } finally {
             return result;
         }
-
     }
 
     /*
@@ -299,15 +276,6 @@ public class BipartiteGraphGenerator {
         System.out.println(bgg.saveCityPage("Madrid"));
         bgg.addEdge(3, 4);
     }  */
-
-    private void addNewDataElement(List<List<String>> dataset, String city, String person) {
-
-        List<String> data = new ArrayList<String>();
-        data.add(city);
-        data.add(person);
-        dataset.add(data);
-
-    }
 
     private void writeNodesOnAFile(BufferedWriter output) throws IOException {
         try {
@@ -358,8 +326,6 @@ public class BipartiteGraphGenerator {
         } catch (SQLException ex) {
             // Logger.getLogger(BipartiteGraphGenerator.class.getName()).log(Level.SEVERE, null, ex);
         }
-
-
     }
 
     public int getRegularGeneratedPaths() {

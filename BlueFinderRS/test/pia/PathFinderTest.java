@@ -2,16 +2,13 @@ package pia;
 
 import static org.junit.Assert.*;
 import org.junit.After;
-import org.junit.AfterClass;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import java.io.UnsupportedEncodingException;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import normalization.INormalizator;
 
 import org.junit.Test;
 
@@ -20,15 +17,7 @@ public class PathFinderTest {
     private PathFinder pathFinder;
     private static final String FROM = "[from]";
     private static final String TO = "[to]";
-    
-    @BeforeClass
-    public static void setUpClass() {
-    }
-    
-    @AfterClass
-    public static void tearDownClass() {
-    }
-    
+        
     @Before
     public void setUp() {
         this.pathFinder = new PathFinder();
@@ -113,7 +102,6 @@ public class PathFinderTest {
         try {
             List<List<String>> expectedResult = new ArrayList<List<String>>();
             
-            
             List<String> tmpPath = new ArrayList<String>();
             tmpPath.add(FROM);
             tmpPath.add("Category:Sportspeople_from_" + FROM);
@@ -135,7 +123,22 @@ public class PathFinderTest {
         }
         fail("Prototype");
     }
-
+    
+    @Test
+    public void testGetCategoriesFromPage() throws ClassNotFoundException, SQLException, UnsupportedEncodingException {
+        String pageName = "Rosario,_Santa_Fe";
+        List<String> expectedResult = new ArrayList<String>();
+        expectedResult.add("Rosario,_Santa_Fe");
+        List<String> result = this.pathFinder.getCategoriesFromPage(pageName);
+        assertEquals("Expected " + expectedResult + " got " + result, expectedResult, result);
+    }    
+    
+    @Test
+    public void testGetCategoriesFromPageWithoutCategories() throws ClassNotFoundException, SQLException, UnsupportedEncodingException {
+        String pageName = "List_of_VIP";
+        List<String> result = this.pathFinder.getCategoriesFromPage(pageName);
+        assertTrue(result.isEmpty());
+    }
     /**
      * Test of normalizeCategory method, of class PathFinder.
      */
